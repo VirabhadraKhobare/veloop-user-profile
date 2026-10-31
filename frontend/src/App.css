@@ -1,0 +1,306 @@
+
+:root {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #f4f5fb;
+  background: #161827;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #161827;
+}
+
+button {
+  font: inherit;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  color: #f4f5fb;
+}
+
+.sidebar {
+  padding: 32px 20px;
+  background: #111321;
+  border-right: 1px solid #2b2e41;
+}
+
+.brand {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  margin-bottom: 48px;
+}
+
+.brand span {
+  color: #e7bb65;
+}
+
+.nav-heading,
+.eyebrow {
+  color: #989db6;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+.nav-heading {
+  margin-bottom: 14px;
+}
+
+.nav-item {
+  padding: 12px;
+  margin: 5px 0;
+  color: #b8bdd1;
+  border-radius: 9px;
+  font-size: 14px;
+}
+
+.nav-item.active {
+  background: #252940;
+  color: #f0c978;
+}
+
+.main-content {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 34px clamp(18px, 4vw, 54px);
+}
+
+.topbar,
+.section-heading,
+.welcome-card,
+.level-card,
+.quick-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.topbar {
+  margin-bottom: 30px;
+}
+
+.topbar h1 {
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 750;
+  margin: 4px 0 0;
+}
+
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: #f4f5fb;
+  background: #252940;
+  border: 1px solid #363a50;
+  border-radius: 50%;
+}
+
+.welcome-card,
+.level-card {
+  padding: 26px;
+  border: 1px solid #353950;
+  border-radius: 18px;
+  background: linear-gradient(120deg, #252940, #1d2032);
+}
+
+.welcome-card {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  margin-bottom: 34px;
+}
+
+.avatar,
+.reward-icon,
+.level-symbol {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: #efc879;
+  background: #35334a;
+  border-radius: 14px;
+}
+
+.avatar {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+}
+
+.welcome-copy {
+  flex: 1;
+}
+
+.welcome-copy h2,
+.level-card h2,
+.section-heading h2 {
+  margin: 5px 0 8px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.welcome-copy p:last-child,
+.level-card p:last-child,
+.section-heading p {
+  color: #aeb3c9;
+  margin: 0;
+  font-size: 13px;
+}
+
+.member-badge {
+  color: #f0c978;
+  background: #3a3440;
+  border-radius: 20px;
+  padding: 7px 13px;
+  font-size: 12px;
+}
+
+.section-heading {
+  margin-bottom: 18px;
+}
+
+.reward-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 15px;
+  margin-bottom: 24px;
+}
+
+.reward-card {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid #30344a;
+  border-radius: 15px;
+  background: #1e2133;
+}
+
+.reward-icon {
+  width: 42px;
+  height: 42px;
+  margin-bottom: 18px;
+}
+
+.reward-card p {
+  margin: 0 0 7px;
+  color: #b3b8cc;
+  font-size: 13px;
+}
+
+.reward-card strong {
+  display: block;
+  font-size: 27px;
+}
+
+.reward-card span {
+  display: block;
+  margin-top: 7px;
+  color: #8e94ad;
+  font-size: 11px;
+}
+
+.level-card {
+  margin-bottom: 16px;
+}
+
+.level-card p:last-child {
+  max-width: 480px;
+  line-height: 1.6;
+}
+
+.level-symbol {
+  width: 54px;
+  height: 54px;
+}
+
+.quick-action {
+  width: 100%;
+  padding: 17px 20px;
+  color: #f4f5fb;
+  background: #1e2133;
+  border: 1px solid #30344a;
+  border-radius: 13px;
+}
+
+.quick-action span {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.demo-note {
+  margin-top: 22px;
+  color: #9298b0;
+  text-align: center;
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    grid-template-columns: 180px minmax(0, 1fr);
+  }
+
+  .reward-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    padding: 16px;
+    border-right: 0;
+    border-bottom: 1px solid #2b2e41;
+  }
+
+  .brand {
+    margin-bottom: 16px;
+  }
+
+  .sidebar .nav-heading {
+    margin-bottom: 6px;
+  }
+
+  .nav-item {
+    display: inline-block;
+    margin: 3px;
+    padding: 9px;
+    font-size: 12px;
+  }
+
+  .main-content {
+    padding: 24px 16px;
+  }
+
+  .welcome-card {
+    padding: 19px;
+  }
+
+  .reward-grid {
+    gap: 10px;
+  }
+
+  .reward-card {
+    padding: 15px;
+  }
+
+  .reward-card strong {
+    font-size: 23px;
+  }
+}
