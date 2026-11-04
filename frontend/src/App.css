@@ -22,6 +22,110 @@ button {
   font: inherit;
 }
 
+.loading-screen,
+.auth-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.loading-screen {
+  color: #b8bdd1;
+}
+
+.auth-card {
+  width: min(100%, 440px);
+  padding: 36px;
+  color: #f4f5fb;
+  background: #1e2133;
+  border: 1px solid #353950;
+  border-radius: 20px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.25);
+}
+
+.auth-card .brand {
+  margin-bottom: 42px;
+}
+
+.auth-card h1 {
+  margin: 8px 0;
+  font-size: 30px;
+}
+
+.auth-description {
+  margin: 0 0 24px;
+  color: #aeb3c9;
+  font-size: 14px;
+}
+
+.auth-form {
+  display: grid;
+  gap: 16px;
+}
+
+.auth-form label {
+  display: grid;
+  gap: 7px;
+  color: #c8cce0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.auth-form input {
+  width: 100%;
+  padding: 12px 13px;
+  color: #f4f5fb;
+  background: #161827;
+  border: 1px solid #3a3e55;
+  border-radius: 9px;
+  outline: none;
+}
+
+.auth-form input:focus {
+  border-color: #e7bb65;
+  box-shadow: 0 0 0 3px rgba(231, 187, 101, 0.15);
+}
+
+.primary-button,
+.text-button,
+.logout-button {
+  border: 0;
+  cursor: pointer;
+}
+
+.primary-button {
+  margin-top: 5px;
+  padding: 12px 16px;
+  color: #171827;
+  background: #e7bb65;
+  border-radius: 9px;
+  font-weight: 700;
+}
+
+.primary-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.text-button {
+  display: block;
+  margin: 22px auto 0;
+  color: #e7bb65;
+  background: transparent;
+  font-size: 13px;
+}
+
+.form-error {
+  margin-bottom: 18px;
+  padding: 11px 13px;
+  color: #ffc2c2;
+  background: rgba(179, 54, 54, 0.2);
+  border: 1px solid rgba(255, 142, 142, 0.35);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
 .app-shell {
   min-height: 100vh;
   display: grid;
@@ -59,6 +163,10 @@ button {
 }
 
 .nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-decoration: none;
   padding: 12px;
   margin: 5px 0;
   color: #b8bdd1;
@@ -68,6 +176,21 @@ button {
 
 .nav-item.active {
   background: #252940;
+  color: #f0c978;
+}
+
+.logout-button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 42px 12px 0;
+  padding: 0;
+  color: #b8bdd1;
+  background: transparent;
+  font-size: 13px;
+}
+
+.logout-button:hover {
   color: #f0c978;
 }
 
@@ -248,6 +371,223 @@ button {
   font-size: 12px;
 }
 
+.state-message {
+  padding: 28px;
+  color: #aeb3c9;
+  background: #1e2133;
+  border: 1px solid #30344a;
+  border-radius: 15px;
+}
+
+.error-state,
+.form-notice {
+  color: #ffc2c2;
+  background: rgba(179, 54, 54, 0.18);
+  border-color: rgba(255, 142, 142, 0.35);
+}
+
+.page-actions,
+.panel-heading,
+.referral-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.page-actions {
+  margin-bottom: 20px;
+  color: #aeb3c9;
+}
+
+.secondary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 13px;
+  color: #f0c978;
+  background: #252940;
+  border: 1px solid #3a3e55;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.stat-card {
+  padding: 20px;
+  background: #1e2133;
+  border: 1px solid #30344a;
+  border-radius: 13px;
+}
+
+.stat-card span,
+.category-label {
+  color: #989db6;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.stat-card strong {
+  display: block;
+  margin-top: 9px;
+  font-size: 25px;
+}
+
+.panel {
+  margin-bottom: 22px;
+  padding: 22px;
+  background: #1e2133;
+  border: 1px solid #30344a;
+  border-radius: 15px;
+}
+
+.panel-heading {
+  margin-bottom: 18px;
+}
+
+.panel-heading h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.panel-heading select,
+.auth-form select {
+  padding: 9px;
+  color: #f4f5fb;
+  background: #161827;
+  border: 1px solid #3a3e55;
+  border-radius: 8px;
+}
+
+.record-list {
+  display: grid;
+}
+
+.record-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 15px 0;
+  border-top: 1px solid #30344a;
+}
+
+.record-row div {
+  display: grid;
+  gap: 5px;
+}
+
+.record-row span {
+  color: #8e94ad;
+  font-size: 12px;
+}
+
+.positive,
+.success-icon {
+  color: #75d7a2;
+}
+
+.negative,
+.error-state {
+  color: #ff9a9a;
+}
+
+.achievement-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.achievement-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  padding: 17px;
+  background: #252940;
+  border: 1px solid #353950;
+  border-radius: 12px;
+}
+
+.achievement-card h3 {
+  margin: 5px 0;
+  font-size: 16px;
+}
+
+.achievement-card p {
+  margin: 0 0 12px;
+  color: #aeb3c9;
+  font-size: 13px;
+}
+
+.achievement-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  color: #e7bb65;
+  background: #35334a;
+  border-radius: 10px;
+}
+
+.muted-icon {
+  color: #6f748b;
+}
+
+.progress-track {
+  height: 7px;
+  margin: 14px 0 8px;
+  overflow: hidden;
+  background: #161827;
+  border-radius: 10px;
+}
+
+.progress-track span {
+  display: block;
+  height: 100%;
+  background: #e7bb65;
+  border-radius: inherit;
+}
+
+.achievement-card small {
+  color: #8e94ad;
+}
+
+.referral-banner {
+  margin-bottom: 22px;
+  padding: 22px;
+  background: linear-gradient(120deg, #252940, #1d2032);
+  border: 1px solid #353950;
+  border-radius: 15px;
+}
+
+.referral-banner strong {
+  display: block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  margin-top: 7px;
+}
+
+.two-column {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.85fr) minmax(320px, 1.15fr);
+  gap: 18px;
+}
+
+.form-notice {
+  margin-bottom: 15px;
+  padding: 11px 13px;
+  border: 1px solid;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
 @media (max-width: 900px) {
   .app-shell {
     grid-template-columns: 180px minmax(0, 1fr);
@@ -255,6 +595,15 @@ button {
 
   .reward-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .achievement-grid,
+  .two-column {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -292,6 +641,10 @@ button {
     padding: 19px;
   }
 
+  .auth-card {
+    padding: 26px 20px;
+  }
+
   .reward-grid {
     gap: 10px;
   }
@@ -302,5 +655,19 @@ button {
 
   .reward-card strong {
     font-size: 23px;
+  }
+
+  .page-actions,
+  .referral-banner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .stat-card {
+    padding: 15px;
+  }
+
+  .panel {
+    padding: 16px;
   }
 }
