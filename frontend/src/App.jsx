@@ -1,16 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  CheckCircle2,
   Clipboard,
   Gem,
   Home,
   LogOut,
+  Menu,
   RefreshCw,
   Send,
   Trophy,
   UserRound,
   Wallet,
-  XCircle,
 } from "lucide-react";
 import {
   BrowserRouter,
@@ -30,55 +29,28 @@ import {
   rewardsApi,
   withdrawalsApi,
 } from "./services/api";
+import useRequest from "./hooks/useRequest";
+import { formatDate, formatDateTime, formatNumber, getErrorMessage } from "./utils";
+import AchievementCard from "./components/AchievementCard";
+import LevelProgress from "./components/LevelProgress";
+import ProfileHero from "./components/ProfileHero";
+import RecentActivity from "./components/RecentActivity";
+import ReferralSnapshot from "./components/ReferralSnapshot";
+import RewardAssets from "./components/RewardAssets";
+import WithdrawalOverview from "./components/WithdrawalOverview";
 
-function errorMessage(error) {
-  return (
-    error.response?.data?.message || "Something went wrong. Please try again."
-  );
-}
+const navigationLinks = [
+  ["/user-profile", "My Profile", Home],
+  ["/rewards", "Rewards", Gem],
+  ["/achievements", "Achievements", Trophy],
+  ["/referrals", "Referrals", Send],
+  ["/withdrawals", "Withdrawals", Wallet],
+];
 
-function useRequest(request, initialValue) {
-  const [state, setState] = useState({
-    data: initialValue,
-    loading: true,
-    error: "",
-  });
-  const load = (params = {}) => {
-    setState((current) => ({ ...current, loading: true, error: "" }));
-    return request(params)
-      .then((response) =>
-        setState({ data: response.data.data, loading: false, error: "" }),
-      )
-      .catch((error) =>
-        setState({
-          data: initialValue,
-          loading: false,
-          error: errorMessage(error),
-        }),
-      );
-  };
-  useEffect(() => {
-    let active = true;
-    request()
-      .then((response) => {
-        if (active)
-          setState({ data: response.data.data, loading: false, error: "" });
-      })
-      .catch((error) => {
-        if (active)
-          setState({
-            data: initialValue,
-            loading: false,
-            error: errorMessage(error),
-          });
-      });
-    return () => {
-      active = false;
-    };
-    // Requests are provided by each page and deliberately run once on mount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  return { ...state, reload: load };
+function getNavigationLinks(role) {
+  return role === "admin"
+    ? [...navigationLinks, ["/admin", "Admin Panel", Trophy]]
+    : navigationLinks;
 }
 
 function AuthForm({ onAuthenticated }) {
@@ -108,7 +80,7 @@ function AuthForm({ onAuthenticated }) {
           : await authApi.register(form);
       onAuthenticated(response.data.data);
     } catch (requestError) {
-      setError(errorMessage(requestError));
+      setError(getErrorMessage(requestError));
     } finally {
       setSubmitting(false);
     }
@@ -118,7 +90,7 @@ function AuthForm({ onAuthenticated }) {
     <main className="auth-shell">
       <section className="auth-card">
         <div className="brand">
-          VELO<span>op</span>
+          <span className="brand-word">VELO</span><span>op</span>
         </div>
         <p className="eyebrow">
           {registering ? "CREATE YOUR ACCOUNT" : "WELCOME BACK"}
@@ -222,38 +194,63 @@ function AuthForm({ onAuthenticated }) {
 function DashboardLayout({ user, onLogout, onUserUpdated }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const links = [
-    ["/user-profile", "My Profile", Home],
-    ["/rewards", "Rewards", Gem],
-    ["/achievements", "Achievements", Trophy],
-    ["/referrals", "Referrals", Send],
-    ["/withdrawals", "Withdrawals", Wallet],
-  ];
-  if (user.role === "admin") links.push(["/admin", "Admin Panel", Trophy]);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const links = getNavigationLinks(user.role);
+  function toggleNavigation() {
+    if (window.innerWidth <= 760) {
+      setMobileNavOpen((open) => !open);
+      return;
+    }
+    setSidebarCollapsed((collapsed) => !collapsed);
+  }
   async function logout() {
     await onLogout();
     navigate("/");
   }
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${sidebarCollapsed ? "sidebar-collapsed" : ""} ${mobileNavOpen ? "mobile-nav-open" : ""}`}>
       <aside className="sidebar">
         <div className="brand">
           VELO<span>op</span>
         </div>
+        <button
+          className="sidebar-toggle"
+          type="button"
+          onClick={toggleNavigation}
+          aria-expanded={mobileNavOpen}
+          aria-controls="account-navigation"
+          aria-label="Toggle navigation"
+          title="Toggle navigation"
+        >
+          <Menu size={18} aria-hidden="true" />
+        </button>
         <p className="nav-heading">ACCOUNT</p>
-        {links.map(([path, label, Icon]) => (
-          <Link
-            className={`nav-item ${location.pathname === path ? "active" : ""}`}
-            key={path}
-            to={path}
-          >
-            <Icon size={16} />
-            {label}
-          </Link>
-        ))}
-        <button className="logout-button" type="button" onClick={logout}>
+        <nav className="sidebar-nav" id="account-navigation" aria-label="Account navigation">
+          <div className="drawer-brand" aria-hidden="true">
+            <span className="brand-word">VELO</span><span>op</span>
+          </div>
+          {links.map(([path, label, Icon]) => (
+            <Link
+              className={`nav-item ${location.pathname === path ? "active" : ""}`}
+              key={path}
+              to={path}
+              onClick={() => setMobileNavOpen(false)}
+            >
+              <Icon size={16} />
+              <span>{label}</span>
+            </Link>
+          ))}
+        </nav>
+        <button
+          className="logout-button"
+          type="button"
+          onClick={logout}
+          aria-label="Sign out"
+          title="Sign out"
+        >
           <LogOut size={16} />
-          Sign out
+          <span>Sign out</span>
         </button>
       </aside>
       <main className="main-content">
@@ -333,7 +330,7 @@ function AdminPage() {
       const response = await adminApi.user(id);
       setSelectedUser(response.data.data);
     } catch (error) {
-      setNotice(errorMessage(error));
+      setNotice(getErrorMessage(error));
     }
   }
 
@@ -349,7 +346,7 @@ function AdminPage() {
       refresh();
       if (selectedUser?.user?._id === user._id) inspectUser(user._id);
     } catch (error) {
-      setNotice(errorMessage(error));
+      setNotice(getErrorMessage(error));
     } finally {
       setBusy(false);
     }
@@ -365,7 +362,7 @@ function AdminPage() {
       setNotice("Withdrawal status updated and recorded.");
       refresh();
     } catch (error) {
-      setNotice(errorMessage(error));
+      setNotice(getErrorMessage(error));
     } finally {
       setBusy(false);
     }
@@ -387,8 +384,8 @@ function AdminPage() {
         <section className="stat-grid admin-stat-grid">
           <article className="stat-card"><span>USERS</span><strong>{dashboard.data.users.total}</strong><small>{dashboard.data.users.active} active · {dashboard.data.users.suspended} suspended</small></article>
           <article className="stat-card"><span>PENDING WITHDRAWALS</span><strong>{dashboard.data.withdrawals.pending}</strong><small>{dashboard.data.withdrawals.total} total requests</small></article>
-          <article className="stat-card"><span>TOTAL TOKENS</span><strong>{dashboard.data.walletTotals.tokens.toLocaleString()}</strong><small>From persisted wallets</small></article>
-          <article className="stat-card"><span>TOTAL XP</span><strong>{dashboard.data.walletTotals.xp.toLocaleString()}</strong><small>From persisted wallets</small></article>
+          <article className="stat-card"><span>TOTAL TOKENS</span><strong>{formatNumber(dashboard.data.walletTotals.tokens)}</strong><small>From persisted wallets</small></article>
+          <article className="stat-card"><span>TOTAL XP</span><strong>{formatNumber(dashboard.data.walletTotals.xp)}</strong><small>From persisted wallets</small></article>
         </section>
       </StateMessage>
       <section className="panel">
@@ -411,7 +408,7 @@ function AdminPage() {
                 <tr key={item._id}>
                   <td><strong>{item.fullName}</strong><small>@{item.username} · {item.email}</small></td>
                   <td><span className={`status-pill ${item.status}`}>{item.status}</span></td>
-                  <td>{new Date(item.memberSince).toLocaleDateString()}</td>
+                  <td>{formatDate(item.memberSince)}</td>
                   <td className="table-actions"><button className="copy-button" type="button" onClick={() => inspectUser(item._id)}>Inspect</button><button className="copy-button" type="button" onClick={() => changeUserStatus(item)} disabled={busy}>{item.status === "active" ? "Suspend" : "Restore"}</button></td>
                 </tr>
               ))}</tbody>
@@ -423,7 +420,7 @@ function AdminPage() {
         <section className="panel">
           <div className="panel-heading"><h2>User detail: {selectedUser.user.fullName}</h2><button className="copy-button" type="button" onClick={() => setSelectedUser(null)}>Close</button></div>
           <div className="admin-detail-grid">
-            {Object.entries(selectedUser.wallet || {}).filter(([key]) => ["ve", "sve", "gems", "tokens", "xp"].includes(key)).map(([key, value]) => <div className="stat-card" key={key}><span>{key.toUpperCase()}</span><strong>{value.toLocaleString()}</strong></div>)}
+            {Object.entries(selectedUser.wallet || {}).filter(([key]) => ["ve", "sve", "gems", "tokens", "xp"].includes(key)).map(([key, value]) => <div className="stat-card" key={key}><span>{key.toUpperCase()}</span><strong>{formatNumber(value)}</strong></div>)}
           </div>
           <p className="admin-muted">{selectedUser.transactions.length} reward transactions · {selectedUser.referrals.length} referrals · {selectedUser.withdrawals.length} withdrawals</p>
         </section>
@@ -432,13 +429,13 @@ function AdminPage() {
         <div className="panel-heading"><h2>Withdrawal review</h2></div>
         <StateMessage {...withdrawalState} empty="No pending withdrawal requests.">
           <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Reference</th><th>User</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody>
-            {withdrawalState.data.map((item) => <tr key={item._id}><td>{item.referenceId}</td><td>{item.user?.username || item.user?.email || "User"}</td><td>{item.amount.toLocaleString()} tokens</td><td><span className={`status-pill ${item.status}`}>{item.status}</span></td><td className="table-actions"><button className="copy-button" type="button" onClick={() => changeWithdrawal(item, "approved")} disabled={busy || item.status !== "pending"}>Approve</button><button className="copy-button danger-button" type="button" onClick={() => changeWithdrawal(item, "rejected")} disabled={busy || ["completed", "rejected"].includes(item.status)}>Reject</button></td></tr>)}
+            {withdrawalState.data.map((item) => <tr key={item._id}><td>{item.referenceId}</td><td>{item.user?.username || item.user?.email || "User"}</td><td>{formatNumber(item.amount)} tokens</td><td><span className={`status-pill ${item.status}`}>{item.status}</span></td><td className="table-actions"><button className="copy-button" type="button" onClick={() => changeWithdrawal(item, "approved")} disabled={busy || item.status !== "pending"}>Approve</button><button className="copy-button danger-button" type="button" onClick={() => changeWithdrawal(item, "rejected")} disabled={busy || ["completed", "rejected"].includes(item.status)}>Reject</button></td></tr>)}
           </tbody></table></div>
         </StateMessage>
       </section>
       <section className="panel">
         <div className="panel-heading"><h2>Recent audit activity</h2></div>
-        <StateMessage {...auditLogs} empty="No administrative activity recorded yet."><div className="record-list">{auditLogs.data.items.map((item) => <div className="record-row" key={item._id}><div><strong>{item.action}</strong><span>{item.admin?.username || "Administrator"} · {item.reason}</span></div><small>{new Date(item.createdAt).toLocaleString()}</small></div>)}</div></StateMessage>
+        <StateMessage {...auditLogs} empty="No administrative activity recorded yet."><div className="record-list">{auditLogs.data.items.map((item) => <div className="record-row" key={item._id}><div><strong>{item.action}</strong><span>{item.admin?.username || "Administrator"} · {item.reason}</span></div><small>{formatDateTime(item.createdAt)}</small></div>)}</div></StateMessage>
       </section>
     </div>
   );
@@ -486,13 +483,6 @@ function ProfilePage({ user, onUserUpdated }) {
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const profile = summary.data.profile || user;
-  const cards = [
-    ["VEs", "ve", Gem, "Your available VELoop rewards."],
-    ["SVEs", "sve", Trophy, "Silver VELoop rewards."],
-    ["Gems", "gems", Gem, "Gems available for supported features."],
-    ["Tokens", "tokens", Wallet, "Tokens available for eligible withdrawals."],
-    ["XP", "xp", Trophy, "Experience used for level progression."],
-  ];
   async function copyValue(label, value) {
     if (!value || !navigator.clipboard) return;
     await navigator.clipboard.writeText(value);
@@ -509,47 +499,26 @@ function ProfilePage({ user, onUserUpdated }) {
       setEditing(false);
       setMessage("Profile updated successfully.");
     } catch (error) {
-      setMessage(errorMessage(error));
+      setMessage(getErrorMessage(error));
     } finally {
       setSaving(false);
     }
   }
   return (
     <>
-      <section className="welcome-card">
-        <div className="avatar">
-          {user.avatarUrl ? (
-            <img src={user.avatarUrl} alt="" />
-          ) : (
-            <UserRound size={28} />
-          )}
-        </div>
-        <div className="welcome-copy">
-          <p className="eyebrow">MEMBER PROFILE</p>
-          <h2>Welcome, {profile.fullName}</h2>
-          <p>
-            @{profile.username} · {profile.email}
-          </p>
-        </div>
-        <span className="member-badge">
-          {profile.status === "active" ? "Active member" : profile.status}
-        </span>
-        <button
-          className="secondary-button"
-          type="button"
-          onClick={() => {
-            setForm({
-              fullName: user.fullName,
-              username: user.username,
-              avatarUrl: user.avatarUrl || "",
-            });
-            setEditing((current) => !current);
-            setMessage("");
-          }}
-        >
-          {editing ? "Cancel" : "Edit profile"}
-        </button>
-      </section>
+      <ProfileHero
+        profile={profile}
+        editing={editing}
+        onEdit={() => {
+          setForm({
+            fullName: user.fullName,
+            username: user.username,
+            avatarUrl: user.avatarUrl || "",
+          });
+          setEditing((current) => !current);
+          setMessage("");
+        }}
+      />
       {message && (
         <div className="form-notice" role="status">
           {message}
@@ -611,18 +580,7 @@ function ProfilePage({ user, onUserUpdated }) {
         </div>
       </section>
       <StateMessage {...summary}>
-        <section className="reward-grid">
-          {cards.map(([label, key, Icon, description]) => (
-            <article className="reward-card" key={key}>
-              <div className="reward-icon">
-                <Icon size={20} />
-              </div>
-              <p title={description}>{label}</p>
-              <strong>{summary.data.rewards[key].toLocaleString()}</strong>
-              <span>{description}</span>
-            </article>
-          ))}
-        </section>
+        <RewardAssets rewards={summary.data.rewards} />
       </StateMessage>
       <section className="panel identity-panel">
         <div className="panel-heading">
@@ -633,7 +591,7 @@ function ProfilePage({ user, onUserUpdated }) {
           {[
             ["User ID", profile.userId || profile.id],
             ["Referral code", profile.referralCode],
-            ["Member since", new Date(profile.memberSince).toLocaleDateString()],
+            ["Member since", formatDate(profile.memberSince)],
           ].map(([label, value]) => (
             <div className="identity-item" key={label}>
               <span>{label}</span>
@@ -653,27 +611,8 @@ function ProfilePage({ user, onUserUpdated }) {
           ))}
         </div>
       </section>
-      <section className="level-card">
-        <div>
-          <p className="eyebrow">LEVEL PROGRESS</p>
-          <h2>Level {summary.data.levelProgress.currentLevel} · {summary.data.levelProgress.currentLevelName}</h2>
-          <p>
-            {summary.data.levelProgress.currentXp.toLocaleString()} /{" "}
-            {summary.data.levelProgress.nextLevelXp.toLocaleString()} XP ·{" "}
-            {summary.data.levelProgress.xpRemaining.toLocaleString()} XP to level{" "}
-            {summary.data.levelProgress.nextLevel}
-          </p>
-          <div className="progress-track">
-            <span
-              style={{ width: `${summary.data.levelProgress.progressPercent}%` }}
-              aria-label={`${summary.data.levelProgress.progressPercent}% complete`}
-            />
-          </div>
-        </div>
-        <div className="level-symbol">
-          <Trophy size={26} />
-        </div>
-      </section>
+      <LevelProgress progress={summary.data.levelProgress} />
+      <RecentActivity items={summary.data.activity || []} />
     </>
   );
 }
@@ -707,7 +646,7 @@ function RewardsPage() {
           {Object.entries(summary.data.balances).map(([key, value]) => (
             <article className="stat-card" key={key}>
               <span>{key.toUpperCase()}</span>
-              <strong>{value.toLocaleString()}</strong>
+              <strong>{formatNumber(value)}</strong>
             </article>
           ))}
         </section>
@@ -738,7 +677,7 @@ function RewardsPage() {
                 <div>
                   <strong>{item.description}</strong>
                   <span>
-                    {new Date(item.createdAt).toLocaleDateString()} ·{" "}
+                    {formatDate(item.createdAt)} ·{" "}
                     {item.status}
                   </span>
                 </div>
@@ -797,41 +736,12 @@ function AchievementsPage() {
           <div className="achievement-grid">
             {all.data.map((item) => {
               const progress = unlocked.get(item._id);
-              const percent = Math.min(
-                Math.round(((progress?.progress || 0) / item.target) * 100),
-                100,
-              );
               return (
-                <article
-                  className={`achievement-card ${progress?.unlockedAt ? "unlocked" : ""}`}
+                <AchievementCard
                   key={item._id}
-                >
-                  <div className="achievement-icon">
-                    <Trophy size={21} />
-                  </div>
-                  <div>
-                    <span className="category-label">{item.category}</span>
-                    <h3>{item.name}</h3>
-                    <p>{item.description}</p>
-                    <div className="progress-track">
-                      <span
-                        style={{
-                          width: `${progress?.unlockedAt ? 100 : percent}%`,
-                        }}
-                      />
-                    </div>
-                    <small>
-                      {progress?.unlockedAt
-                        ? `Unlocked ${new Date(progress.unlockedAt).toLocaleDateString()}`
-                        : `${progress?.progress || 0} / ${item.target}`}
-                    </small>
-                  </div>
-                  {progress?.unlockedAt ? (
-                    <CheckCircle2 className="success-icon" />
-                  ) : (
-                    <XCircle className="muted-icon" />
-                  )}
-                </article>
+                  achievement={item}
+                  progress={progress}
+                />
               );
             })}
           </div>
@@ -860,34 +770,11 @@ function ReferralsPage() {
   return (
     <>
       <StateMessage {...summary}>
-        <section className="referral-banner">
-          <div>
-            <p className="eyebrow">YOUR REFERRAL LINK</p>
-            <strong>{link}</strong>
-          </div>
-          <button className="secondary-button" onClick={copy}>
-            <Clipboard size={15} />
-            {copied ? "Copied" : "Copy link"}
-          </button>
-        </section>
-        <section className="stat-grid">
-          <article className="stat-card">
-            <span>TOTAL</span>
-            <strong>{summary.data.total}</strong>
-          </article>
-          <article className="stat-card">
-            <span>SUCCESSFUL</span>
-            <strong>{summary.data.successful}</strong>
-          </article>
-          <article className="stat-card">
-            <span>PENDING</span>
-            <strong>{summary.data.pending}</strong>
-          </article>
-          <article className="stat-card">
-            <span>REWARDS</span>
-            <strong>{summary.data.eligibleRewards}</strong>
-          </article>
-        </section>
+        <ReferralSnapshot
+          summary={summary.data}
+          onCopy={copy}
+          copied={copied}
+        />
       </StateMessage>
       <section className="panel">
         <div className="panel-heading">
@@ -902,7 +789,7 @@ function ReferralsPage() {
               <div className="record-row" key={item._id}>
                 <div>
                   <strong>Referral</strong>
-                  <span>{new Date(item.createdAt).toLocaleDateString()}</span>
+                  <span>{formatDate(item.createdAt)}</span>
                 </div>
                 <b>{item.status}</b>
               </div>
@@ -940,7 +827,7 @@ function WithdrawalsPage() {
       summary.reload();
       list.reload();
     } catch (error) {
-      setMessage(errorMessage(error));
+      setMessage(getErrorMessage(error));
     } finally {
       setSubmitting(false);
     }
@@ -948,24 +835,7 @@ function WithdrawalsPage() {
   return (
     <>
       <StateMessage {...summary}>
-        <section className="stat-grid">
-          <article className="stat-card">
-            <span>AVAILABLE</span>
-            <strong>{summary.data.available}</strong>
-          </article>
-          <article className="stat-card">
-            <span>PENDING</span>
-            <strong>{summary.data.pending}</strong>
-          </article>
-          <article className="stat-card">
-            <span>COMPLETED</span>
-            <strong>{summary.data.completed}</strong>
-          </article>
-          <article className="stat-card">
-            <span>MINIMUM</span>
-            <strong>{summary.data.minimum}</strong>
-          </article>
-        </section>
+        <WithdrawalOverview summary={summary.data} />
       </StateMessage>
       <div className="two-column">
         <section className="panel">
@@ -1029,7 +899,7 @@ function WithdrawalsPage() {
                   <div>
                     <strong>{item.referenceId}</strong>
                     <span>
-                      {new Date(item.createdAt).toLocaleDateString()} ·{" "}
+                      {formatDate(item.createdAt)} ·{" "}
                       {item.payoutMethod}
                     </span>
                   </div>
