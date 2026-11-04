@@ -12,6 +12,7 @@ const achievementsRoutes = require("./routes/achievements");
 const referralsRoutes = require("./routes/referrals");
 const withdrawalsRoutes = require("./routes/withdrawals");
 const adminRoutes = require("./routes/admin");
+const profileRoutes = require("./routes/profile");
 
 const app = express();
 
@@ -48,6 +49,7 @@ app.use("/api/achievements", achievementsRoutes);
 app.use("/api/referrals", referralsRoutes);
 app.use("/api/withdrawals", withdrawalsRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/profile", profileRoutes);
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({

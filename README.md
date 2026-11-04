@@ -24,9 +24,12 @@ A full-stack user profile and admin management application built using the MERN 
 - User registration, login, logout, and authenticated profile lookup
 - MongoDB-backed user schema with password hashing and account status checks
 - HTTP-only JWT cookie authentication with request validation and rate limiting
+- Unified `GET /api/profile/me` contract for backend-owned profile rendering
+- Admin dashboard, paginated user search/detail, and audit-log read APIs
+- Protected Admin Panel with live dashboard metrics, user suspension/restore, withdrawal review, and audit activity
 
 ## Development Status
-The user-facing feature set is implemented. Achievement definitions must be seeded by an administrator or deployment script before they appear, and payout completion remains an administrator-reviewed workflow.
+The user-facing feature set is implemented. Achievement definitions must be seeded by an administrator or deployment script before they appear, and payout completion remains an administrator-reviewed workflow. Level progression currently follows the server-owned 1,000 XP threshold rule.
 
 ## Local Development
 
@@ -41,6 +44,10 @@ npm run dev
 cd backend
 npm install
 npm run dev
+
+To create or update the development administrator, set the `ADMIN_SEED_*` values in
+`backend/.env` and run `node scripts/seed-admin.js` from the `backend` directory.
+Never use production credentials for this seed process.
 
 ### Authentication API
 

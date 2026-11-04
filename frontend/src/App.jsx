@@ -23,7 +23,9 @@ import {
 } from "react-router-dom";
 import {
   achievementsApi,
+  adminApi,
   authApi,
+  profileApi,
   referralsApi,
   rewardsApi,
   withdrawalsApi,
@@ -227,6 +229,7 @@ function DashboardLayout({ user, onLogout, onUserUpdated }) {
     ["/referrals", "Referrals", Send],
     ["/withdrawals", "Withdrawals", Wallet],
   ];
+  if (user.role === "admin") links.push(["/admin", "Admin Panel", Trophy]);
   async function logout() {
     await onLogout();
     navigate("/");
@@ -275,6 +278,9 @@ function DashboardLayout({ user, onLogout, onUserUpdated }) {
           <Route path="/achievements" element={<AchievementsPage />} />
           <Route path="/referrals" element={<ReferralsPage />} />
           <Route path="/withdrawals" element={<WithdrawalsPage />} />
+          {user.role === "admin" && (
+            <Route path="/admin" element={<AdminPage />} />
+          )}
           <Route path="*" element={<Navigate to="/user-profile" replace />} />
         </Routes>
       </main>
@@ -282,8 +288,164 @@ function DashboardLayout({ user, onLogout, onUserUpdated }) {
   );
 }
 
+function AdminPage() {
+  const dashboard = useRequest(adminApi.dashboard, {
+    users: { total: 0, active: 0, suspended: 0 },
+    walletTotals: { ve: 0, sve: 0, gems: 0, tokens: 0, xp: 0 },
+    withdrawals: { total: 0, pending: 0 },
+    recentAuditLogs: [],
+  });
+  const users = useRequest(
+    (params) => adminApi.users({ page: 1, limit: 25, ...params }),
+    { items: [], total: 0, pages: 0 },
+  );
+  const withdrawalState = useRequest(adminApi.withdrawals, []);
+  const auditLogs = useRequest(
+    (params) => adminApi.auditLogs({ page: 1, limit: 25, ...params }),
+    { items: [], total: 0 },
+  );
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [notice, setNotice] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      dashboard.reload();
+      withdrawalState.reload();
+      auditLogs.reload();
+    }, 30000);
+    return () => window.clearInterval(timer);
+    // Admin data refreshes on a bounded interval while this page is open.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function refresh() {
+    dashboard.reload();
+    users.reload({ search, status: statusFilter });
+    withdrawalState.reload();
+    auditLogs.reload();
+  }
+
+  async function inspectUser(id) {
+    setNotice("");
+    try {
+      const response = await adminApi.user(id);
+      setSelectedUser(response.data.data);
+    } catch (error) {
+      setNotice(errorMessage(error));
+    }
+  }
+
+  async function changeUserStatus(user) {
+    const nextStatus = user.status === "active" ? "suspended" : "active";
+    const reason = window.prompt(`Reason to mark this user ${nextStatus}:`);
+    if (!reason) return;
+    setBusy(true);
+    setNotice("");
+    try {
+      await adminApi.updateUserStatus(user._id, { status: nextStatus, reason });
+      setNotice("User status updated and recorded in the audit log.");
+      refresh();
+      if (selectedUser?.user?._id === user._id) inspectUser(user._id);
+    } catch (error) {
+      setNotice(errorMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function changeWithdrawal(item, status) {
+    const reason = window.prompt(`Reason for marking this withdrawal ${status}:`);
+    if (!reason) return;
+    setBusy(true);
+    setNotice("");
+    try {
+      await adminApi.updateWithdrawal(item._id, { status, reason });
+      setNotice("Withdrawal status updated and recorded.");
+      refresh();
+    } catch (error) {
+      setNotice(errorMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="admin-page">
+      <div className="page-actions">
+        <div>
+          <p className="eyebrow">OPERATIONS</p>
+          <p>Live controls are protected by server-side admin authorization.</p>
+        </div>
+        <button className="secondary-button" type="button" onClick={refresh} disabled={busy}>
+          <RefreshCw size={15} /> Refresh data
+        </button>
+      </div>
+      {notice && <div className="form-notice success-notice" role="status">{notice}</div>}
+      <StateMessage {...dashboard}>
+        <section className="stat-grid admin-stat-grid">
+          <article className="stat-card"><span>USERS</span><strong>{dashboard.data.users.total}</strong><small>{dashboard.data.users.active} active · {dashboard.data.users.suspended} suspended</small></article>
+          <article className="stat-card"><span>PENDING WITHDRAWALS</span><strong>{dashboard.data.withdrawals.pending}</strong><small>{dashboard.data.withdrawals.total} total requests</small></article>
+          <article className="stat-card"><span>TOTAL TOKENS</span><strong>{dashboard.data.walletTotals.tokens.toLocaleString()}</strong><small>From persisted wallets</small></article>
+          <article className="stat-card"><span>TOTAL XP</span><strong>{dashboard.data.walletTotals.xp.toLocaleString()}</strong><small>From persisted wallets</small></article>
+        </section>
+      </StateMessage>
+      <section className="panel">
+        <div className="panel-heading">
+          <h2>User management</h2>
+          <div className="admin-filters">
+            <input aria-label="Search users" placeholder="Search name, username, email" value={search} onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => event.key === "Enter" && users.reload({ search, status: statusFilter })} />
+            <select aria-label="Filter users by status" value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); users.reload({ search, status: event.target.value }); }}>
+              <option value="">All statuses</option>
+              <option value="active">Active</option>
+              <option value="suspended">Suspended</option>
+            </select>
+          </div>
+        </div>
+        <StateMessage {...users} empty="No users match the current filters.">
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead><tr><th>User</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
+              <tbody>{users.data.items.map((item) => (
+                <tr key={item._id}>
+                  <td><strong>{item.fullName}</strong><small>@{item.username} · {item.email}</small></td>
+                  <td><span className={`status-pill ${item.status}`}>{item.status}</span></td>
+                  <td>{new Date(item.memberSince).toLocaleDateString()}</td>
+                  <td className="table-actions"><button className="copy-button" type="button" onClick={() => inspectUser(item._id)}>Inspect</button><button className="copy-button" type="button" onClick={() => changeUserStatus(item)} disabled={busy}>{item.status === "active" ? "Suspend" : "Restore"}</button></td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        </StateMessage>
+      </section>
+      {selectedUser && (
+        <section className="panel">
+          <div className="panel-heading"><h2>User detail: {selectedUser.user.fullName}</h2><button className="copy-button" type="button" onClick={() => setSelectedUser(null)}>Close</button></div>
+          <div className="admin-detail-grid">
+            {Object.entries(selectedUser.wallet || {}).filter(([key]) => ["ve", "sve", "gems", "tokens", "xp"].includes(key)).map(([key, value]) => <div className="stat-card" key={key}><span>{key.toUpperCase()}</span><strong>{value.toLocaleString()}</strong></div>)}
+          </div>
+          <p className="admin-muted">{selectedUser.transactions.length} reward transactions · {selectedUser.referrals.length} referrals · {selectedUser.withdrawals.length} withdrawals</p>
+        </section>
+      )}
+      <section className="panel">
+        <div className="panel-heading"><h2>Withdrawal review</h2></div>
+        <StateMessage {...withdrawalState} empty="No pending withdrawal requests.">
+          <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Reference</th><th>User</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+            {withdrawalState.data.map((item) => <tr key={item._id}><td>{item.referenceId}</td><td>{item.user?.username || item.user?.email || "User"}</td><td>{item.amount.toLocaleString()} tokens</td><td><span className={`status-pill ${item.status}`}>{item.status}</span></td><td className="table-actions"><button className="copy-button" type="button" onClick={() => changeWithdrawal(item, "approved")} disabled={busy || item.status !== "pending"}>Approve</button><button className="copy-button danger-button" type="button" onClick={() => changeWithdrawal(item, "rejected")} disabled={busy || ["completed", "rejected"].includes(item.status)}>Reject</button></td></tr>)}
+          </tbody></table></div>
+        </StateMessage>
+      </section>
+      <section className="panel">
+        <div className="panel-heading"><h2>Recent audit activity</h2></div>
+        <StateMessage {...auditLogs} empty="No administrative activity recorded yet."><div className="record-list">{auditLogs.data.items.map((item) => <div className="record-row" key={item._id}><div><strong>{item.action}</strong><span>{item.admin?.username || "Administrator"} · {item.reason}</span></div><small>{new Date(item.createdAt).toLocaleString()}</small></div>)}</div></StateMessage>
+      </section>
+    </div>
+  );
+}
+
 function StateMessage({ loading, error, empty, children }) {
-  if (loading) return <div className="state-message">Loading...</div>;
+  if (loading) return <div className="state-message" aria-live="polite">Loading your verified data...</div>;
   if (error)
     return (
       <div className="state-message error-state" role="alert">
@@ -295,12 +457,27 @@ function StateMessage({ loading, error, empty, children }) {
 }
 
 function ProfilePage({ user, onUserUpdated }) {
-  const summary = useRequest(rewardsApi.summary, {
-    balances: { ve: 0, sve: 0, gems: 0, tokens: 0, xp: 0 },
-    level: 1,
-    levelProgressPercent: 0,
+  const summary = useRequest(profileApi.me, {
+    profile: user,
+    rewards: { ve: 0, sve: 0, gems: 0, tokens: 0, xp: 0 },
+    levelProgress: {
+      currentLevel: 1,
+      currentLevelName: "Reward Level 01",
+      nextLevel: 2,
+      currentXp: 0,
+      nextLevelXp: 1000,
+      xpRemaining: 1000,
+      progressPercent: 0,
+    },
   });
   const [editing, setEditing] = useState(false);
+  const [copied, setCopied] = useState("");
+  useEffect(() => {
+    const timer = window.setInterval(() => summary.reload(), 30000);
+    return () => window.clearInterval(timer);
+    // The request hook intentionally exposes a stable refresh behavior for this page.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [form, setForm] = useState({
     fullName: user.fullName,
     username: user.username,
@@ -308,12 +485,20 @@ function ProfilePage({ user, onUserUpdated }) {
   });
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const profile = summary.data.profile || user;
   const cards = [
-    ["VEs", "ve", Gem],
-    ["SVEs", "sve", Trophy],
-    ["Gems", "gems", Gem],
-    ["Tokens", "tokens", Wallet],
+    ["VEs", "ve", Gem, "Your available VELoop rewards."],
+    ["SVEs", "sve", Trophy, "Silver VELoop rewards."],
+    ["Gems", "gems", Gem, "Gems available for supported features."],
+    ["Tokens", "tokens", Wallet, "Tokens available for eligible withdrawals."],
+    ["XP", "xp", Trophy, "Experience used for level progression."],
   ];
+  async function copyValue(label, value) {
+    if (!value || !navigator.clipboard) return;
+    await navigator.clipboard.writeText(value);
+    setCopied(label);
+    window.setTimeout(() => setCopied(""), 1800);
+  }
   async function saveProfile(event) {
     event.preventDefault();
     setMessage("");
@@ -341,13 +526,13 @@ function ProfilePage({ user, onUserUpdated }) {
         </div>
         <div className="welcome-copy">
           <p className="eyebrow">MEMBER PROFILE</p>
-          <h2>Welcome, {user.fullName}</h2>
+          <h2>Welcome, {profile.fullName}</h2>
           <p>
-            @{user.username} · {user.email}
+            @{profile.username} · {profile.email}
           </p>
         </div>
         <span className="member-badge">
-          {user.role === "admin" ? "Admin" : "Member"}
+          {profile.status === "active" ? "Active member" : profile.status}
         </span>
         <button
           className="secondary-button"
@@ -427,33 +612,62 @@ function ProfilePage({ user, onUserUpdated }) {
       </section>
       <StateMessage {...summary}>
         <section className="reward-grid">
-          {cards.map(([label, key, Icon]) => (
+          {cards.map(([label, key, Icon, description]) => (
             <article className="reward-card" key={key}>
               <div className="reward-icon">
                 <Icon size={20} />
               </div>
-              <p>{label}</p>
-              <strong>{summary.data.balances[key].toLocaleString()}</strong>
-              <span>Available balance</span>
+              <p title={description}>{label}</p>
+              <strong>{summary.data.rewards[key].toLocaleString()}</strong>
+              <span>{description}</span>
             </article>
           ))}
-          <article className="reward-card">
-            <div className="reward-icon">
-              <Trophy size={20} />
-            </div>
-            <p>XP</p>
-            <strong>{summary.data.balances.xp.toLocaleString()}</strong>
-            <span>Level {summary.data.level}</span>
-          </article>
         </section>
       </StateMessage>
+      <section className="panel identity-panel">
+        <div className="panel-heading">
+          <h2>Account information</h2>
+          <span className="status-label">{profile.status}</span>
+        </div>
+        <div className="identity-grid">
+          {[
+            ["User ID", profile.userId || profile.id],
+            ["Referral code", profile.referralCode],
+            ["Member since", new Date(profile.memberSince).toLocaleDateString()],
+          ].map(([label, value]) => (
+            <div className="identity-item" key={label}>
+              <span>{label}</span>
+              <strong>{value || "Not available"}</strong>
+              {value && (label === "User ID" || label === "Referral code") && (
+                <button
+                  type="button"
+                  className="copy-button"
+                  onClick={() => copyValue(label, value)}
+                  aria-label={`Copy ${label}`}
+                >
+                  <Clipboard size={14} />
+                  {copied === label ? "Copied" : "Copy"}
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
       <section className="level-card">
         <div>
           <p className="eyebrow">LEVEL PROGRESS</p>
-          <h2>Level {summary.data.level}</h2>
-          <p>Verified XP progress toward the next level.</p>
+          <h2>Level {summary.data.levelProgress.currentLevel} · {summary.data.levelProgress.currentLevelName}</h2>
+          <p>
+            {summary.data.levelProgress.currentXp.toLocaleString()} /{" "}
+            {summary.data.levelProgress.nextLevelXp.toLocaleString()} XP ·{" "}
+            {summary.data.levelProgress.xpRemaining.toLocaleString()} XP to level{" "}
+            {summary.data.levelProgress.nextLevel}
+          </p>
           <div className="progress-track">
-            <span style={{ width: `${summary.data.levelProgressPercent}%` }} />
+            <span
+              style={{ width: `${summary.data.levelProgress.progressPercent}%` }}
+              aria-label={`${summary.data.levelProgress.progressPercent}% complete`}
+            />
           </div>
         </div>
         <div className="level-symbol">

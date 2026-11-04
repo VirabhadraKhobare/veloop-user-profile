@@ -22,6 +22,14 @@ button {
   font: inherit;
 }
 
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid rgba(231, 187, 101, 0.65);
+  outline-offset: 3px;
+}
+
 .loading-screen,
 .auth-shell {
   min-height: 100vh;
@@ -386,6 +394,123 @@ button {
   border-color: rgba(255, 142, 142, 0.35);
 }
 
+.success-notice {
+  color: #b7f2ce;
+  background: rgba(53, 146, 93, 0.18);
+  border-color: rgba(117, 215, 162, 0.35);
+}
+
+.admin-page .page-actions p {
+  margin: 0;
+}
+
+.admin-stat-grid small,
+.admin-table small {
+  display: block;
+  margin-top: 6px;
+  color: #8e94ad;
+  font-size: 11px;
+}
+
+.admin-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-filters input,
+.admin-filters select {
+  min-width: 150px;
+  padding: 9px;
+  color: #f4f5fb;
+  background: #161827;
+  border: 1px solid #3a3e55;
+  border-radius: 8px;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  min-width: 700px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.admin-table th {
+  color: #989db6;
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 13px 10px;
+  border-bottom: 1px solid #30344a;
+  vertical-align: middle;
+}
+
+.admin-table td:first-child {
+  min-width: 220px;
+}
+
+.table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 5px 8px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.status-pill.active,
+.status-pill.approved,
+.status-pill.completed {
+  color: #b7f2ce;
+  background: rgba(53, 146, 93, 0.2);
+}
+
+.status-pill.pending,
+.status-pill.processing {
+  color: #f8dca1;
+  background: rgba(190, 143, 51, 0.2);
+}
+
+.status-pill.suspended,
+.status-pill.rejected {
+  color: #ffc2c2;
+  background: rgba(179, 54, 54, 0.2);
+}
+
+.admin-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-detail-grid .stat-card {
+  padding: 14px;
+}
+
+.admin-muted {
+  color: #8e94ad;
+  font-size: 13px;
+}
+
+.danger-button {
+  color: #ffb1b1;
+}
+
 .page-actions,
 .panel-heading,
 .referral-banner {
@@ -446,6 +571,58 @@ button {
   background: #1e2133;
   border: 1px solid #30344a;
   border-radius: 15px;
+}
+
+.identity-panel {
+  margin-bottom: 22px;
+}
+
+.identity-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.identity-item {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  padding: 14px;
+  background: #252940;
+  border-radius: 10px;
+}
+
+.identity-item > span {
+  color: #989db6;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.identity-item strong {
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+
+.copy-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 5px 8px;
+  color: #f0c978;
+  background: transparent;
+  border: 1px solid #3a3e55;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.status-label {
+  color: #75d7a2;
+  font-size: 12px;
+  text-transform: capitalize;
 }
 
 .panel-heading {
@@ -605,6 +782,14 @@ button {
   .two-column {
     grid-template-columns: 1fr;
   }
+
+  .identity-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 600px) {
@@ -669,5 +854,15 @@ button {
 
   .panel {
     padding: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
   }
 }
