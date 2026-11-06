@@ -48,7 +48,14 @@ router.post("/", async (req, res, next) => {
       { $inc: { reservedWithdrawal: amount } },
       { new: true }
     );
-    if (!wallet) return res.status(400).json({ success: false, message: "Insufficient available balance" });
+    if (!wallet) {
+      const currentWallet = await Wallet.findOne({ user: req.user._id }).select("tokens reservedWithdrawal").lean();
+      const available = Math.max((currentWallet?.tokens || 0) - (currentWallet?.reservedWithdrawal || 0), 0);
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient available balance. Available: ${available} tokens.`,
+      });
+    }
     try {
       const withdrawal = await Withdrawal.create({
         user: req.user._id,

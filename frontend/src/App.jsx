@@ -815,19 +815,50 @@ function WithdrawalsPage() {
     payoutDetails: "",
   });
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const available = Number(summary.data.available) || 0;
+  const minimum = Number(summary.data.minimum) || 10;
+  const amount = Number(form.amount);
+  const amountError = !form.amount
+    ? "Amount is required."
+    : !Number.isFinite(amount) || amount <= 0
+      ? "Enter a valid amount greater than 0."
+      : amount < minimum
+        ? `Enter at least ${minimum} tokens.`
+        : amount > available
+          ? `Your available balance is ${available} tokens.`
+          : "";
+  const payoutDetailsError = !form.payoutDetails.trim()
+    ? "Payout details are required."
+    : form.payoutDetails.trim().length < 2
+      ? "Enter at least 2 characters."
+      : "";
+  const payoutMethodError = !["bank", "paypal"].includes(form.payoutMethod)
+    ? "Select a valid payout method."
+    : "";
   async function submit(event) {
     event.preventDefault();
     setMessage("");
+    setMessageType("");
+    if (amountError || payoutMethodError || payoutDetailsError) {
+      setMessage(amountError || payoutMethodError || payoutDetailsError);
+      return;
+    }
     setSubmitting(true);
     try {
-      await withdrawalsApi.create({ ...form, amount: Number(form.amount) });
+      await withdrawalsApi.create({
+        amount,
+        payoutMethod: form.payoutMethod,
+        payoutDetails: form.payoutDetails.trim(),
+      });
       setForm({ amount: "", payoutMethod: "bank", payoutDetails: "" });
-      setMessage("Withdrawal request submitted for admin review.");
-      summary.reload();
-      list.reload();
+      setMessage("Withdrawal request submitted successfully. It is now pending admin review.");
+      setMessageType("success");
+      await Promise.allSettled([summary.reload(), list.reload()]);
     } catch (error) {
       setMessage(getErrorMessage(error));
+      setMessageType("error");
     } finally {
       setSubmitting(false);
     }
@@ -843,22 +874,31 @@ function WithdrawalsPage() {
             <h2>Request withdrawal</h2>
           </div>
           {message && (
-            <div className="form-notice" role="status">
+            <div className={`form-notice ${messageType === "success" ? "success-notice" : ""}`} role={messageType === "error" ? "alert" : "status"}>
               {message}
             </div>
           )}
-          <form className="auth-form" onSubmit={submit}>
+          <form className="auth-form" onSubmit={submit} noValidate>
             <label>
               Amount
               <input
                 type="number"
-                min={summary.data.minimum}
-                max={summary.data.available}
+                min={minimum}
+                max={available}
                 step="0.01"
                 value={form.amount}
-                onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                onChange={(e) => {
+                  setForm({ ...form, amount: e.target.value });
+                  setMessage("");
+                  setMessageType("");
+                }}
                 required
+                aria-invalid={Boolean(amountError)}
+                aria-describedby="withdrawal-amount-help"
               />
+              <span className={amountError ? "input-help input-help-error" : "input-help"} id="withdrawal-amount-help">
+                {amountError || `Minimum ${minimum} tokens · Available ${available} tokens`}
+              </span>
             </label>
             <label>
               Payout method
@@ -867,6 +907,7 @@ function WithdrawalsPage() {
                 onChange={(e) =>
                   setForm({ ...form, payoutMethod: e.target.value })
                 }
+                aria-invalid={Boolean(payoutMethodError)}
               >
                 <option value="bank">Bank transfer</option>
                 <option value="paypal">PayPal</option>
@@ -876,14 +917,22 @@ function WithdrawalsPage() {
               Payout details
               <input
                 value={form.payoutDetails}
-                onChange={(e) =>
-                  setForm({ ...form, payoutDetails: e.target.value })
-                }
+                onChange={(e) => {
+                  setForm({ ...form, payoutDetails: e.target.value });
+                  setMessage("");
+                  setMessageType("");
+                }}
                 placeholder="Account or wallet details"
                 required
+                minLength="2"
+                maxLength="300"
+                aria-invalid={Boolean(payoutDetailsError)}
               />
+              <span className={payoutDetailsError ? "input-help input-help-error" : "input-help"}>
+                {payoutDetailsError || "Use demo bank or PayPal details for testing."}
+              </span>
             </label>
-            <button className="primary-button" disabled={submitting}>
+            <button className="primary-button" type="submit" disabled={submitting}>
               {submitting ? "Submitting..." : "Submit request"}
             </button>
           </form>

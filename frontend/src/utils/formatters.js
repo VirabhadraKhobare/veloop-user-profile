@@ -21,5 +21,8 @@ export function formatAsset(value) {
 }
 
 export function getErrorMessage(error) {
+  if (error.code === "ECONNABORTED" || error.code === "ETIMEDOUT") {
+    return "The request timed out. Check that the backend is running and try again.";
+  }
   return error.response?.data?.message || "Something went wrong. Please try again.";
 }

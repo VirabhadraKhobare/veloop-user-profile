@@ -10,13 +10,13 @@ function LevelProgress({ progress }) {
 
   return (
     <section className="level-card" aria-label="Level progress">
-      <div>
-        <p className="eyebrow">LEVEL PROGRESS</p>
-        <h2>Level {level.currentLevel || 1} · {level.currentLevelName || "Reward Level 01"}</h2>
-        <p>{currentXp.toLocaleString()} / {nextLevelXp.toLocaleString()} XP · {xpRemaining.toLocaleString()} XP to level {nextLevel}</p>
+      <div className="level-copy">
+        <div className="level-title-row"><p className="eyebrow">PROGRESSION PATH</p><span>{percent}% complete</span></div>
+        <h2>Level {level.currentLevel || 1} <em>{level.currentLevelName || "Reward Level 01"}</em></h2>
+        <p>{currentXp.toLocaleString()} / {nextLevelXp.toLocaleString()} XP <strong>·</strong> {xpRemaining.toLocaleString()} XP to level {nextLevel}</p>
         <div className="progress-track"><span style={{ width: `${percent}%` }} aria-label={`${percent}% complete`} /></div>
       </div>
-      <div className="level-symbol"><Trophy size={26} aria-hidden="true" /></div>
+      <div className="level-symbol"><Trophy size={23} aria-hidden="true" /><span>LVL<br /><strong>{level.currentLevel || 1}</strong></span></div>
     </section>
   );
 }
