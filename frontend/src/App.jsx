@@ -256,10 +256,10 @@ function DashboardLayout({ user, onLogout, onUserUpdated }) {
       <main className="main-content">
         <header className="topbar">
           <div>
-            <p className="eyebrow">YOUR ACCOUNT</p>
+            {location.pathname === "/user-profile" && <div className="breadcrumb"><span>Workspace</span><span>›</span><strong>My profile</strong></div>}
+            <p className="eyebrow">{location.pathname === "/user-profile" ? "MONDAY, NOVEMBER 9, 2026" : "YOUR ACCOUNT"}</p>
             <h1>
-              {links.find(([path]) => path === location.pathname)?.[1] ||
-                "My Profile"}
+              {location.pathname === "/user-profile" ? "Your rewards, at a glance." : links.find(([path]) => path === location.pathname)?.[1] || "My Profile"}
             </h1>
           </div>
           <div className="icon-button">
@@ -482,6 +482,8 @@ function ProfilePage({ user, onUserUpdated }) {
   });
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const referralSummary = summary.data.referrals || {};
+  const withdrawalSummary = summary.data.withdrawals || {};
   const profile = summary.data.profile || user;
   async function copyValue(label, value) {
     if (!value || !navigator.clipboard) return;
@@ -508,6 +510,7 @@ function ProfilePage({ user, onUserUpdated }) {
     <>
       <ProfileHero
         profile={profile}
+        progress={summary.data.levelProgress}
         editing={editing}
         onEdit={() => {
           setForm({
@@ -573,15 +576,15 @@ function ProfilePage({ user, onUserUpdated }) {
           </form>
         </section>
       )}
-      <section className="section-heading">
-        <div>
-          <h2>Your Rewards</h2>
-          <p>Balances are read from your verified wallet.</p>
-        </div>
-      </section>
+      <div className="preview-note">ⓘ Preview values only — live account data is not connected.</div>
+      <section className="section-heading dashboard-section-heading"><div><p className="eyebrow">YOUR BALANCE</p><h2>Reward assets</h2></div><a href="#activity">See activity →</a></section>
       <StateMessage {...summary}>
         <RewardAssets rewards={summary.data.rewards} />
       </StateMessage>
+      <div className="dashboard-pair">
+        <LevelProgress progress={summary.data.levelProgress} />
+        <ReferralSnapshot summary={referralSummary} compact onCopy={() => copyValue("Referral code", referralSummary.code)} copied={copied === "Referral code"} />
+      </div>
       <section className="panel identity-panel">
         <div className="panel-heading">
           <h2>Account information</h2>
@@ -611,8 +614,10 @@ function ProfilePage({ user, onUserUpdated }) {
           ))}
         </div>
       </section>
-      <LevelProgress progress={summary.data.levelProgress} />
-      <RecentActivity items={summary.data.activity || []} />
+      <div className="dashboard-pair" id="activity">
+        <RecentActivity items={summary.data.activity || []} />
+        <WithdrawalOverview summary={{ available: summary.data.rewards?.tokens || 0, pending: withdrawalSummary.pending, completed: withdrawalSummary.totalWithdrawn, minimum: 10 }} />
+      </div>
     </>
   );
 }
